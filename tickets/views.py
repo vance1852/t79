@@ -264,7 +264,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         except Member.DoesNotExist:
             return Response({"detail": "会员不存在"}, status=status.HTTP_404_NOT_FOUND)
         data = MemberStatsService.get_member_portrait(member)
-        return Response(MemberPortraitSerializer(data).data)
+        return Response(data)
 
     @action(detail=True, methods=["post"], url_path="checkin")
     def checkin(self, request, pk=None):
@@ -490,4 +490,4 @@ class MemberCouponViewSet(viewsets.ReadOnlyModelViewSet):
 @permission_classes([IsAuthenticated])
 def member_overall_stats(request):
     data = MemberStatsService.get_overall_stats()
-    return Response(MemberStatsSerializer(data).data)
+    return Response(data)

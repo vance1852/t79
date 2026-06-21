@@ -4,7 +4,6 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
 from django.db.models import F, Sum
-from django.utils import timezone
 
 from .models import (
     GrowthRecord,
@@ -31,11 +30,15 @@ GROWTH_PERIOD_DAYS = 180
 
 
 def get_today():
-    return timezone.now().date()
+    return datetime.now().date()
 
 
 def get_now():
-    return timezone.now()
+    return datetime.now()
+
+
+def make_midnight(d):
+    return datetime(d.year, d.month, d.day, 0, 0, 0)
 
 
 class PointService:
@@ -97,7 +100,7 @@ class PointService:
         if not rule:
             return None
         today = get_today()
-        start = datetime.combine(today, datetime.min.time())
+        start = make_midnight(today)
         end = start + timedelta(days=1)
         today_count = PointTransaction.objects.filter(
             member=member, source="review", created_at__gte=start, created_at__lt=end
@@ -113,7 +116,7 @@ class PointService:
         if not rule:
             return None
         today = get_today()
-        start = datetime.combine(today, datetime.min.time())
+        start = make_midnight(today)
         end = start + timedelta(days=1)
         exists = PointTransaction.objects.filter(
             member=member, source="checkin", created_at__gte=start, created_at__lt=end
@@ -324,7 +327,7 @@ class LevelService:
     @staticmethod
     def recalculate_period_growth(member):
         period_start, _ = LevelService._get_period()
-        start_dt = datetime.combine(period_start.year, period_start.month, period_start.day)
+        start_dt = make_midnight(period_start)
         total = GrowthRecord.objects.filter(
             member=member, created_at__gte=start_dt
         ).aggregate(total=Sum("growth"))["total"] or 0
@@ -635,7 +638,7 @@ class MemberStatsService:
     @staticmethod
     def get_member_portrait(member):
         period_start = get_today() - timedelta(days=90)
-        start_dt = datetime.combine(period_start.year, period_start.month, period_start.day)
+        start_dt = make_midnight(period_start)
         recent_orders = member.orders.filter(status="paid", created_at__gte=start_dt)
         recent_amount = recent_orders.aggregate(total=Sum("amount"))["total"] or Decimal("0")
         recent_count = recent_orders.count()
@@ -684,7 +687,7 @@ class MemberStatsService:
         total_points_expired = PointTransaction.objects.filter(type="expire").aggregate(
             total=Sum("points"))["total"] or 0
         today = get_today()
-        start_dt = datetime.combine(today.year, today.month, today.day)
+        start_dt = make_midnight(today)
         month_start = datetime(today.year, today.month, 1)
         new_members_month = Member.objects.filter(joined_at__gte=month_start).count()
         new_members_today = Member.objects.filter(joined_at__gte=start_dt).count()
